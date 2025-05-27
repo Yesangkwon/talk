@@ -12,8 +12,12 @@
   "dependencies": {
     "koa": "^3.0.0",
     "koa-mount": "^4.2.0",
+    "koa-route": "^4.0.1",
     "koa-send": "^5.0.1",
     "koa-static": "^5.0.0",
     "koa-websocket": "^7.0.0"
+  },
+  "devDependencies": {
+    "tailwindcss": "^4.1.7"
   }
 }
