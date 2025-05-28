@@ -14,6 +14,7 @@ const app = websockify(new Koa())//10 - 머지
 const route = require('koa-route')//11 - 요청을 구분 해서 처리
 const { initializeApp } = require("firebase/app");//로컬에서 참조함.
 const { getFirestore } = require("firebase/firestore");//로컬에서 참조함.
+const { setInterval } = require('timers/promises')
 const firebaseConfig = {
   apiKey: "AIzaSyAJi98jk5Nn1vQV5gpr8EktGZS6OXtbSnQ",
   authDomain: "bookserch-3a97f.firebaseapp.com",
@@ -22,21 +23,17 @@ const firebaseConfig = {
   storageBucket: "bookserch-3a97f.firebasestorage.app",
   messagingSenderId: "1079617955056",
   appId: "1:1079617955056:web:04fdd59c15691c6f174e35",
-  measurementId: "G-ST1V80TFPN"
 };
 //Firebase 앱 초기화
 const talkApp = initializeApp(firebaseConfig)
 const db = getFirestore(talkApp)
-console.log(db);
+// console.log(db);
 //정적 리소스에 대한 파일 경로 설정하기
 const staticPath = path.join(__dirname, './views')//4
-
 app.use(serve(staticPath));//5
-
 //9 - public의 경로와 views의 경로에 같은 파일이 있으면 구별이 안된다.
 app.use(mount('/public', serve('src/public'))) //처리-이벤트- 말하기
 //서버는 5000번 포트를 열어놓고 기다린다. -waiting
-
 //기본 라우터 설정하기
 app.use(async(ctx) => {
   if(ctx.path === '/'){
@@ -69,7 +66,6 @@ app.use(async(ctx) => {
     ctx.body = 'Page Not Found'
   }
 });//end of use
-
 // npm i koa-route 먼저 설치한다.
 // 왜나면 koa-websocket과 koa-route 서로 의존관계 있다.
 // Using routes
@@ -77,8 +73,19 @@ app.ws.use(
   //ws는 websocket을 의미한다.
   //-> /test/:id로 요청이 오면 아래를 처리하라.
   route.all('/ws', async(ctx) => {
+    //ping-pong 설정하기
+    //일정 시간이 지나면 연결이 끊어진다. - 아무런 움직임이 없는 상태로.....
+    const interval = setInterval(() => {
+      if(ctx.websocket.readyState === ctx.websocket.OPEN){
+        //서버측에서 ping이라는 메시지 전송
+        ctx.websocket.ping()
+      }
+    }, 30000); // 30초마다 ping 전송
+    ctx.websocket.on('pong',()=>{
+      console.log('클라이언트로 부터 pong메시지 수신');
+    })
     //클라이언트 측에서 요청이 오면 콜백 핸들러가 반응함.
-  ctx.websocket.on('message', (data) => {
+    ctx.websocket.on('message', (data) => {
     //클라이언트가 보낸 메시지를 출력한다.
     console.log(typeof data);//object인가? 아니면 string
     if(typeof JSON.stringify(data) !== 'string'){
@@ -109,11 +116,6 @@ app.ws.use(
         }))
       }
     })
-
-    ctx.websocket.send(JSON.stringify({
-      message: message,
-      nickname: nickname,
-    }))
   });
 }));
 

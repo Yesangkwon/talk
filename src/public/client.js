@@ -41,7 +41,7 @@
     //서버에서 보낸 메시지 청취하기
     chats.push(JSON.parse(event.data))
     chatsEl.innerHTML = '' //화면 초기화
-    chats.forEach(chat => {
+    chats.forEach(({nickname, message}) => {
       const div = document.createElement('div')
       div.innerText = `${nickname}: ${message}[12:34]`
       chatsEl.appendChild(div)
