@@ -34,8 +34,32 @@ app.use(serve(staticPath));//5
 //9 - public의 경로와 views의 경로에 같은 파일이 있으면 구별이 안된다.
 app.use(mount('/public', serve('src/public'))) //처리-이벤트- 말하기
 //서버는 5000번 포트를 열어놓고 기다린다. -waiting
+//시간정보는 서버에서 구동한다
+//타임서버를 구현한다.
+let curtime = '' // 전변 - 다른 함수나 {} 안에서도 호출할 수 있다.
+const setClock = () => {
+  const timeInfo = new Date()
+  const hour = modifyNumber(timeInfo.getHours())
+  const min = modifyNumber(timeInfo.getMinutes())
+  const sec = modifyNumber(timeInfo.getSeconds())
+  curtime = hour +':'+min+':'+sec
+}
+
+const modifyNumber = (num) => {
+  if(parseInt(num) < 10) {
+    return "0"+num
+  }else{
+    return num
+  }
+}
+
 //기본 라우터 설정하기
 app.use(async(ctx) => {
+  //1초마다 한 번씩 setClock 호출됨
+  //괄호는 없어도 괜찮아. 왜냐면 함수도 객체다
+  //함수도 파라미터로 사용이 가능하다 - 일급함수
+  //전변 curtime에 현재 시간이 담긴다.
+  await setInterval(setClock, 1000)
   if(ctx.path === '/'){
     ctx.type = 'text/html'
     //index.html문서가 하는 일을 여기에 작성해 본다.
