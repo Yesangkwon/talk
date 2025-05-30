@@ -13,8 +13,8 @@ const websockify = require('koa-websocket')//9 - 웹소켓
 const app = websockify(new Koa())//10 - 머지
 const route = require('koa-route')//11 - 요청을 구분 해서 처리
 const { initializeApp } = require("firebase/app");//로컬에서 참조함.
-const { getFirestore, collection } = require("firebase/firestore");//로컬에서 참조함.
-const { setInterval } = require('timers/promises')
+const { getFirestore, collection, query, addDoc, getDocs } = require("firebase/firestore");//로컬에서 참조함.
+
 const firebaseConfig = {
   apiKey: "AIzaSyAJi98jk5Nn1vQV5gpr8EktGZS6OXtbSnQ",
   authDomain: "bookserch-3a97f.firebaseapp.com",
@@ -30,6 +30,7 @@ const db = getFirestore(talkApp)
 // console.log(db);
 //정적 리소스에 대한 파일 경로 설정하기
 const staticPath = path.join(__dirname, './views')//4
+
 app.use(serve(staticPath));//5
 //9 - public의 경로와 views의 경로에 같은 파일이 있으면 구별이 안된다.
 app.use(mount('/public', serve('src/public'))) //처리-이벤트- 말하기
@@ -93,9 +94,12 @@ app.use(async(ctx) => {
 
 //앞의 대화 내용을 가져오는 함수 배치하기
 const getChatsCollection = async() => {
+  console.log('getchat 호출');
   //firestore api
   const q = query(collection(db, 'talk250529'))
+  console.log(q);
   const snapshot = await getDocs(q)
+  console.log(snapshot);
   //data는 n건의 정보를 쥐고있다.[{},{},{}]{[{},{},{}]}
   //forEach문 map문
   const data = snapshot.docs.map(doc => doc.data())
@@ -112,17 +116,18 @@ app.ws.use(
     console.log('새로 입장한 사람이라면....여기부터 시작함.');
     //아래 함수는 firestore에서 데이터를 읽어오기 - Back-End(NodeJS, Spring Boot, python C#)
     //DB를 연동하는 코드가 보이지 않는다.
-    const talk = getChatsCollection()
+    const talks = await getChatsCollection()
+    console.log(talks);
     //앞의 문자열을 붙여서 출력하는 경우 아닌경우와 출력 결과가
     //다르다 기억해야함. - 같은 경우도 있다. - 그래서 헷갈린다.
-    ctx.websocket.send(JSON.stringify({
-    //클라이언트가 입장햇을 때 sync인지 talk인지 결정한다. - 서버
-    //그래서 서버가 결정해야 하므로 type에는 상수를 쓴다.
-    type:'sync', //firestore에서 가져온다.
-    payload: {
-    talks,//변수 - talks담긴 값은 어디서 가져오나요요
-    }
-  }))
+    //   ctx.websocket.send(JSON.stringify({
+    //   //클라이언트가 입장햇을 때 sync인지 talk인지 결정한다. - 서버
+    //   //그래서 서버가 결정해야 하므로 type에는 상수를 쓴다.
+    //   type:'sync', //firestore에서 가져온다.
+    //   payload: {
+    //   talks,//변수 - talks담긴 값은 어디서 가져오나요요
+    //   }
+    // }))
     //ping-pong 설정하기
     //일정 시간이 지나면 연결이 끊어진다. - 아무런 움직임이 없는 상태로.....
   const interval = setInterval(() => {
@@ -132,7 +137,7 @@ app.ws.use(
       }
     }, 30000); // 30초마다 ping 전송
   ctx.websocket.on('pong',()=>{
-      console.log('클라이언트로 부터 pong메시지 수신');
+      // console.log('클라이언트로 부터 pong메시지 수신');
     })
     //클라이언트 측에서 요청이 오면 콜백 핸들러가 반응함.
   ctx.websocket.on('message', async(data) => {
@@ -142,8 +147,8 @@ app.ws.use(
       return;//if문에서 return을 만나면 탈출함- 콜백 핸들러 빠져나감.
     }
     //string이면 여기로 온다.
-    const { nickname, message, curtime } = JSON.parse(data)
-    console.log(`${nickname}, ${message}`);
+    const { nickname, message } = JSON.parse(data)
+    console.log(`${nickname}, ${message} ${curtime}`);
     
     try{
       //예외가 발생할 가능성이 있는 코드를 작성
